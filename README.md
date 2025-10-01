@@ -19,6 +19,35 @@ Este proyecto implementa un pipeline de Jenkins que construye y despliega una ap
 - Proyecto de OpenShift existente (por defecto: `cicd-test`).
 - Acceso a `registry.redhat.io` (si usas el builder `ubi9/go-toolset`). Si no, sustituye por otro builder soportado o usa estrategia Docker.
 
+---
+
+## Configuración del ServiceAccount y Token (Opción A – recomendada)
+
+En OpenShift, lo mejor es asociar un **ServiceAccount (SA)** a un rol ya existente (`edit` o `view`) en el *namespace*, en lugar de crear roles personalizados.
+
+### 1. Crear el ServiceAccount
+```bash
+oc create sa jenkins-cicd -n cicd-test
+```
+
+### 2. Asignar permisos (ejemplo: rol `edit`)
+```bash
+# Permite a Jenkins crear/actualizar la mayoría de recursos en el proyecto
+oc policy add-role-to-user edit -z jenkins-cicd -n cicd-test
+```
+
+> Si solo necesitas lectura, usa `view` en lugar de `edit`.
+
+### 3. Generar un token para Jenkins
+OpenShift 4.11+ permite crear tokens con vencimiento:
+```bash
+oc create token jenkins-cicd -n cicd-test --duration=8760h
+```
+
+Ese token se debe registrar en Jenkins como **Secret Text Credential** con el ID `openshift-token-cicd`.
+
+---
+
 ## Variables del Pipeline
 
 Configura estas variables en el `Jenkinsfile` o como **parámetros** del job:
